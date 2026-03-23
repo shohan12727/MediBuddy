@@ -1,5 +1,5 @@
 import json 
-from django.shortcuts import get_list_or_404, render
+from django.shortcuts import get_object_or_404, render
 from rest_framework import status
 from appointment.models import Appointment
 from appointment.models import ApplicationUser
@@ -51,5 +51,50 @@ class DoctorProfileView(APIView):
         
         else:
             return Response({'status':'error','message':'something is going wrong'})
+    
+    def post(self, request):
+        
+        full_name = request.POST.get('full_name')
+        degrees = request.POST.get('degrees')
+        phone = request.POST.get('phone')
+        email = request.POST.get('email')
+        chamber_address = request.POST.get('chamber_address') 
+        speciality = request.POST.get('speciality')
+        consultation_fee = request.POST.get('consultation_fee')
+        profile_image = request.POST.get('profile_image')
+        
+        doctor_user = ApplicationUser.objects.get(username=request.user.username)
+        doctor = Doctor.objects.get(id = doctor_user.user_id)
+        doctor.full_name = full_name
+        doctor.degrees = degrees
+        doctor.phone = phone
+        doctor.chamber_address = chamber_address
+        doctor.consultation_fee = consultation_fee
+        if profile_image:
+            doctor.profile_image = profile_image
+        doctor.save()
+        
+        
+        doctor_user.first_name = full_name
+        doctor_user.email = email 
+        doctor_user.phone_number = phone
+        doctor_user.save()
+        
+        return Response({'message':'success'})
+    
+class DoctorWeeklySchedules(APIView):
+    
+    def get(self,request):
+        user = request.user.username
+        doctor_id = get_object_or_404(ApplicationUser, username = user).user_id
+        doctor = Doctor.objects.get(id=doctor_id)
+        schedules = DaySchedule.objects.filter(doctor=doctor).prefetch_related('time_ranges')
+        schedules_serialized = DayScheduleSerializer(schedules,many=True).data
+        return Response(schedules_serialized)
+    
+        
+        
+        
+            
         
         
